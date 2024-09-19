@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carwash - Agendar Cita</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      form {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        margin: auto;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        font-size: 16px;
+        font-family: inherit;
+        box-sizing: border-box;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-color: #fff;
+        color: #333;
+        line-height: 1.5;
+        outline: none;
+        transition: border-color 0.3s ease;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+
+      /* Estilo para la flecha del select */
+      select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 30px;
+      }
+
+      /* Ajuste para navegadores específicos */
+      @-moz-document url-prefix() {
+        select {
+          text-indent: 0.01px;
+          text-overflow: "";
+          padding-right: 30px;
+        }
+      }
+
+      /* Ajuste para IE */
+      select::-ms-expand {
+        display: none;
+      }
+
+      button {
+        padding: 10px 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #218838;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Agendar Cita de Carwash</h2>
+
+    <form id="appointmentForm">
+      <label for="customerName">Nombre del Cliente</label>
+      <input type="text" id="customerName" name="customerName" required />
+
+      <label for="carwash">Seleccione el Carwash</label>
+      <select id="carwash" name="carwash" required>
+        <option value="">Seleccione un Carwash</option>
+        <option value="carwash1">Carwash 1</option>
+        <option value="carwash2">Carwash 2</option>
+      </select>
+
+      <label for="service">Servicio</label>
+      <select id="service" name="service" required>
+        <option value="Lavado Básico">Lavado Básico</option>
+        <option value="Lavado Completo">Lavado Completo</option>
+        <option value="Lavado de Motor">Lavado de Motor</option>
+        <option value="Encerado">Encerado</option>
+      </select>
+
+      <label for="date">Fecha</label>
+      <input type="date" id="date" name="date" required />
+
+      <label for="time">Hora</label>
+      <select id="time" name="time" required aria-live="polite">
+        <option value="">Seleccione un Carwash y una fecha primero</option>
+      </select>
+
+      <button type="submit">Agendar Cita</button>
+    </form>
+
+    <script>
+      const carwashSelect = document.getElementById("carwash");
+      const dateInput = document.getElementById("date");
+      const timeSelect = document.getElementById("time");
+      const submitButton = document.querySelector('button[type="submit"]');
+
+      function updateAvailableTimes() {
+        const carwash = carwashSelect.value;
+        const date = dateInput.value;
+
+        if (!carwash || !date) {
+          timeSelect.innerHTML =
+            '<option value="">Seleccione un Carwash y una fecha primero</option>';
+          submitButton.disabled = true;
+          return;
+        }
+
+        timeSelect.innerHTML =
+          '<option value="">Cargando horas disponibles...</option>';
+        submitButton.disabled = true;
+
+        fetch(
+          `/api/appointments/available-times?carwash=${carwash}&date=${date}`
+        )
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            timeSelect.innerHTML = "";
+            if (data.availableTimes && data.availableTimes.length > 0) {
+              data.availableTimes.forEach((time) => {
+                const option = document.createElement("option");
+                option.value = time;
+                option.textContent = time;
+                timeSelect.appendChild(option);
+              });
+              submitButton.disabled = false;
+            } else {
+              const option = document.createElement("option");
+              option.textContent = "No hay horas disponibles";
+              option.disabled = true;
+              timeSelect.appendChild(option);
+              submitButton.disabled = true;
+            }
+          })
+          .catch((error) => {
+            console.error("Error al obtener las horas disponibles:", error);
+            timeSelect.innerHTML =
+              '<option value="">Error al cargar horas</option>';
+            submitButton.disabled = true;
+          });
+      }
+
+      carwashSelect.addEventListener("change", updateAvailableTimes);
+      dateInput.addEventListener("change", updateAvailableTimes);
+
+      document
+        .getElementById("appointmentForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const appointmentData = Object.fromEntries(formData.entries());
+
+          try {
+            const response = await fetch("/api/appointments", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(appointmentData),
+            });
+
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+
+            const result = await response.json();
+            console.log("Cita agendada:", result);
+            alert("Cita agendada con éxito!");
+            this.reset();
+            timeSelect.innerHTML =
+              '<option value="">Seleccione un Carwash y una fecha primero</option>';
+            submitButton.disabled = true;
+          } catch (error) {
+            console.error("Error al agendar la cita:", error);
+            alert(
+              "Hubo un error al agendar la cita. Por favor, intente de nuevo."
+            );
+          }
+        });
+    </script>
+  </body>
+</html>

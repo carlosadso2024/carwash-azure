@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - carwash-app-2
+name: Build and deploy Node.js app to Azure Web App - carwash-app
 
 on:
   push:
@@ -14,20 +14,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Clona el repositorio
       - uses: actions/checkout@v4
 
+      # Configura la versión de Node.js
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
 
+      # Instala las dependencias, construye y prueba la app
       - name: npm install, build, and test
         run: |
           npm install
           npm run build --if-present
           npm run test --if-present
-
-    
 
   deploy:
     runs-on: ubuntu-latest
@@ -37,20 +38,25 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write
-      
+
     steps:
+      # Clona el repositorio de nuevo para asegurarte de que tiene los últimos cambios
       - uses: actions/checkout@v4
+
+      # Inicia sesión en Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_73653205511445AA85D045A20639FC7B }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C6C1B34D98674257A8509F284E6399AB }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EC2766B9E90142A6BDFC97274D508FA6 }}
+
+      # Despliega directamente los archivos de la aplicación a Azure Web App
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'carwash-app-2'
+          app-name: 'carwash-app'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_505F5D95BFEA4D489768CEFEFCA62BCB }}
+
